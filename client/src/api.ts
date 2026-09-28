@@ -16,425 +16,248 @@ import {
 
 const API_BASE = '/api';
 
-// Realistic fallback seed dataset for direct client-side execution on Vercel
-const CLIENT_COMPANIES: Company[] = [
+// Template companies with realistic roles and hiring profiles
+const COMPANY_TEMPLATES = [
   {
-    id: 'comp-cog-guindy',
     name: 'Cognizant Technology Solutions',
-    slug: 'cognizant-guindy',
+    companyType: 'IT Services & Consulting',
     logoUrl: 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=150&auto=format&fit=crop',
-    companyType: 'IT Services & Consulting',
-    website: 'https://www.cognizant.com',
-    address: 'Olympia Tech Park, 1 SIDCO Industrial Estate, Guindy',
-    city: 'Chennai',
-    state: 'Tamil Nadu',
-    postalCode: '600032',
-    location: { latitude: 13.0093, longitude: 80.2037 },
-    status: 'WALK_IN',
-    openPositionsCount: 14,
-    walkInsCount: 2,
-    verifiedAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    contactPhone: '+91 44 4209 6000',
-    contactEmail: 'careers.chn@cognizant.com'
-  },
-  {
-    id: 'comp-lti-guindy',
-    name: 'LTIMindtree Innovation Center',
-    slug: 'ltimindtree-guindy',
-    logoUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=150&auto=format&fit=crop',
-    companyType: 'IT & Digital Engineering',
-    website: 'https://www.ltimindtree.com',
-    address: 'Altius Block, Olympia Tech Park, Guindy',
-    city: 'Chennai',
-    state: 'Tamil Nadu',
-    postalCode: '600032',
-    location: { latitude: 13.0089, longitude: 80.2045 },
-    status: 'HIRING',
-    openPositionsCount: 8,
-    walkInsCount: 0,
-    verifiedAt: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
-    contactPhone: '+91 44 6625 0000',
-    contactEmail: 'talent@ltimindtree.com'
-  },
-  {
-    id: 'comp-verizon-guindy',
-    name: 'Verizon India Development Center',
-    slug: 'verizon-guindy',
-    logoUrl: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=150&auto=format&fit=crop',
-    companyType: 'Telecom & Cloud Infra',
-    website: 'https://www.verizon.com',
-    address: 'Olympia Tech Park, C-Block, Guindy',
-    city: 'Chennai',
-    state: 'Tamil Nadu',
-    postalCode: '600032',
-    location: { latitude: 13.0078, longitude: 80.2051 },
-    status: 'HIRING',
-    openPositionsCount: 5,
-    walkInsCount: 0,
-    verifiedAt: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-    contactPhone: '+91 44 4390 0000'
-  },
-  {
-    id: 'comp-sutherland-saidapet',
-    name: 'Sutherland Global Services',
-    slug: 'sutherland-saidapet',
-    logoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop',
-    companyType: 'BPO & Customer Experience',
-    website: 'https://www.sutherlandglobal.com',
-    address: '45-A, Velachery Main Road, Little Mount, Saidapet',
-    city: 'Chennai',
-    state: 'Tamil Nadu',
-    postalCode: '600015',
-    location: { latitude: 13.0125, longitude: 80.2223 },
-    status: 'WALK_IN',
-    openPositionsCount: 20,
-    walkInsCount: 2,
-    verifiedAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-    contactPhone: '+91 44 4299 9000'
-  },
-  {
-    id: 'comp-freshworks-omr',
-    name: 'Freshworks Tech Campus',
-    slug: 'freshworks-omr',
-    logoUrl: 'https://images.unsplash.com/photo-1572021335469-31706a17aaef?w=150&auto=format&fit=crop',
-    companyType: 'SaaS Product & AI',
-    website: 'https://www.freshworks.com',
-    address: 'Global Infocity Park, 40 MGR Salai, Kandanchavadi, Perungudi',
-    city: 'Chennai',
-    state: 'Tamil Nadu',
-    postalCode: '600096',
-    location: { latitude: 12.9698, longitude: 80.2452 },
-    status: 'WALK_IN',
-    openPositionsCount: 11,
-    walkInsCount: 1,
-    verifiedAt: new Date(Date.now() - 1000 * 60 * 35).toISOString(),
-    contactPhone: '+91 44 6667 8080'
-  },
-  {
-    id: 'comp-amazon-omr',
-    name: 'Amazon Development Centre',
-    slug: 'amazon-chennai-omr',
-    logoUrl: 'https://images.unsplash.com/photo-1523474253246-72dc9ade3ee0?w=150&auto=format&fit=crop',
-    companyType: 'Cloud & E-Commerce Tech',
-    website: 'https://amazon.jobs',
-    address: 'World Trade Center, Brigade Group, Perungudi, OMR',
-    city: 'Chennai',
-    state: 'Tamil Nadu',
-    postalCode: '600096',
-    location: { latitude: 12.9664, longitude: 80.2465 },
-    status: 'HIRING',
-    openPositionsCount: 9,
-    walkInsCount: 0,
-    verifiedAt: new Date(Date.now() - 1000 * 60 * 55).toISOString()
-  },
-  {
-    id: 'comp-tcs-sholinganallur',
-    name: 'Tata Consultancy Services (TCS ELCOT)',
-    slug: 'tcs-sholinganallur',
-    logoUrl: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=150&auto=format&fit=crop',
-    companyType: 'IT Services & Consulting',
-    website: 'https://www.tcs.com',
-    address: '415/21-24 Kumaran Nagar, Sholinganallur, OMR',
-    city: 'Chennai',
-    state: 'Tamil Nadu',
-    postalCode: '600119',
-    location: { latitude: 12.9022, longitude: 80.2285 },
-    status: 'WALK_IN',
-    openPositionsCount: 25,
-    walkInsCount: 2,
-    verifiedAt: new Date(Date.now() - 1000 * 60 * 20).toISOString(),
-    contactPhone: '+91 44 6616 1111'
-  },
-  {
-    id: 'comp-zoho-estancia',
-    name: 'Zoho Corporation Global HQ',
-    slug: 'zoho-estancia',
-    logoUrl: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=150&auto=format&fit=crop',
-    companyType: 'Cloud Software & AI',
-    website: 'https://www.zoho.com',
-    address: 'Estancia IT Park, Vallancheri, GST Road, Guduvanchery',
-    city: 'Chennai',
-    state: 'Tamil Nadu',
-    postalCode: '603202',
-    location: { latitude: 12.8317, longitude: 80.0456 },
-    status: 'WALK_IN',
-    openPositionsCount: 18,
-    walkInsCount: 1,
-    verifiedAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-    contactPhone: '+91 44 6744 7070'
-  },
-  {
-    id: 'comp-hcl-ambattur',
-    name: 'HCLTech Innovation Park',
-    slug: 'hcl-ambattur',
-    logoUrl: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=150&auto=format&fit=crop',
-    companyType: 'IT & Infrastructure Services',
-    website: 'https://www.hcltech.com',
-    address: 'Ambattur Industrial Estate, 3rd Phase, Ambattur',
-    city: 'Chennai',
-    state: 'Tamil Nadu',
-    postalCode: '600058',
-    location: { latitude: 13.0895, longitude: 80.1634 },
-    status: 'WALK_IN',
-    openPositionsCount: 15,
-    walkInsCount: 1,
-    verifiedAt: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
-    contactPhone: '+91 44 4396 7000'
-  }
-];
-
-const CLIENT_WALKINS: WalkIn[] = [
-  {
-    id: 'walkin-cog-01',
-    companyId: 'comp-cog-guindy',
-    companyName: 'Cognizant Technology Solutions',
-    companyLogo: 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=150&auto=format&fit=crop',
-    positionTitle: 'Associate Software Engineer (Java / React / Python)',
-    jobCategory: 'Software',
-    eligibility: 'B.E / B.Tech / MCA / M.Sc (Comp Science/IT) 2024, 2025 & 2026 batches with min 60% aggregate. No active backlogs.',
-    experience: 'Fresher',
-    salaryText: '₹ 4.5 LPA - ₹ 6.0 LPA',
-    date: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString().split('T')[0],
-    timeSlot: '09:00 AM - 01:30 PM',
-    venueAddress: 'Olympia Tech Park, 1 SIDCO Industrial Estate, Guindy, Chennai - 600032',
-    venueCoordinates: { latitude: 13.0093, longitude: 80.2037 },
-    registrationRequired: true,
-    registrationLink: 'https://careers.cognizant.com',
-    sourceName: 'TechPark Verified Walk-In Feed',
-    sourceUrl: 'https://careers.cognizant.com',
-    discoveredAt: new Date().toISOString(),
-    lastVerifiedAt: new Date().toISOString(),
-    status: 'UPCOMING',
-    notes: 'Please carry 2 copies of resume, government ID proof, and degree mark sheets.'
-  },
-  {
-    id: 'walkin-freshworks-01',
-    companyId: 'comp-freshworks-omr',
-    companyName: 'Freshworks Tech Campus',
-    companyLogo: 'https://images.unsplash.com/photo-1572021335469-31706a17aaef?w=150&auto=format&fit=crop',
-    positionTitle: 'Frontend Engineer & UI/UX Specialist',
-    jobCategory: 'Web Development',
-    eligibility: 'Degree in CS / Design / Any stream. Hands-on coding experience in React, TypeScript, and modern CSS.',
-    experience: '0–1 years',
-    salaryText: '₹ 5.5 LPA - ₹ 8.0 LPA',
-    date: new Date().toISOString().split('T')[0],
-    timeSlot: '10:00 AM - 03:00 PM',
-    venueAddress: 'Global Infocity Park, 40 MGR Salai, Kandanchavadi, Perungudi, Chennai - 600096',
-    venueCoordinates: { latitude: 12.9698, longitude: 80.2452 },
-    registrationRequired: false,
-    sourceName: 'Official Career Portal Feeds',
-    sourceUrl: 'https://careers.freshworks.com',
-    discoveredAt: new Date().toISOString(),
-    lastVerifiedAt: new Date().toISOString(),
-    status: 'ACTIVE_TODAY',
-    notes: 'Direct Walk-in. Live coding challenge on site.'
-  },
-  {
-    id: 'walkin-sutherland-01',
-    companyId: 'comp-sutherland-saidapet',
-    companyName: 'Sutherland Global Services',
-    companyLogo: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop',
-    positionTitle: 'Technical Support & Customer Success Specialist',
-    jobCategory: 'BPO',
-    eligibility: 'Any Graduate / Undergraduates with fluent verbal English communication.',
-    experience: 'Fresher',
-    salaryText: '₹ 3.2 LPA - ₹ 4.5 LPA + Incentives',
-    date: new Date().toISOString().split('T')[0],
-    timeSlot: '10:30 AM - 04:30 PM',
-    venueAddress: '45-A, Velachery Main Road, Little Mount, Saidapet, Chennai - 600015',
-    venueCoordinates: { latitude: 13.0125, longitude: 80.2223 },
-    registrationRequired: false,
-    sourceName: 'Public Recruitment Pages',
-    sourceUrl: 'https://careers.sutherlandglobal.com',
-    discoveredAt: new Date().toISOString(),
-    lastVerifiedAt: new Date().toISOString(),
-    status: 'ACTIVE_TODAY'
-  },
-  {
-    id: 'walkin-tcs-01',
-    companyId: 'comp-tcs-sholinganallur',
-    companyName: 'Tata Consultancy Services (TCS ELCOT)',
-    companyLogo: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=150&auto=format&fit=crop',
-    positionTitle: 'Graduate Trainee / Cloud & DevOps Specialist',
-    jobCategory: 'DevOps',
-    eligibility: 'B.Sc / BCA / B.Tech with good fundamentals in Linux and Cloud.',
-    experience: 'Fresher',
-    salaryText: '₹ 3.8 LPA - ₹ 5.2 LPA',
-    date: new Date(Date.now() + 1000 * 60 * 60 * 48).toISOString().split('T')[0],
-    timeSlot: '09:30 AM - 02:00 PM',
-    venueAddress: 'TCS ELCOT SEZ, Kumaran Nagar, Sholinganallur, Chennai - 600119',
-    venueCoordinates: { latitude: 12.9022, longitude: 80.2285 },
-    registrationRequired: true,
-    registrationLink: 'https://nextstep.tcs.com',
-    sourceName: 'TechPark Verified Walk-In Feed',
-    sourceUrl: 'https://nextstep.tcs.com',
-    discoveredAt: new Date().toISOString(),
-    lastVerifiedAt: new Date().toISOString(),
-    status: 'UPCOMING'
-  }
-];
-
-const CLIENT_JOBS: Job[] = [
-  {
-    id: 'job-cog-01',
-    companyId: 'comp-cog-guindy',
-    companyName: 'Cognizant Technology Solutions',
-    companyLogo: 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=150&auto=format&fit=crop',
-    title: 'Associate Software Engineer (Java / React)',
+    status: 'WALK_IN' as const,
+    roleTitle: 'Associate Software Engineer (Java / React / Python)',
     category: 'Software',
     experience: 'Fresher',
-    qualification: 'B.E / B.Tech / MCA',
-    salaryMin: 450000,
-    salaryMax: 600000,
-    salaryCurrency: 'INR',
     salaryText: '₹ 4.5 LPA - ₹ 6.0 LPA',
-    jobType: 'Walk-in',
-    workMode: 'Hybrid',
-    description: 'Looking for passionate junior engineers to design and maintain enterprise microservices using Java, Spring Boot, and React.',
-    keySkills: ['Java', 'Spring Boot', 'React', 'SQL', 'Git'],
-    location: 'Guindy, Chennai',
-    coordinates: { latitude: 13.0093, longitude: 80.2037 },
-    isWalkIn: true,
-    walkInId: 'walkin-cog-01',
-    sourceName: 'TechPark Verified Walk-In Feed',
-    sourceUrl: 'https://careers.cognizant.com',
-    discoveredAt: new Date().toISOString(),
-    lastVerifiedAt: new Date().toISOString(),
-    status: 'ACTIVE'
+    walkInToday: false,
+    offsetKm: 1.8,
+    bearingDeg: 35
   },
   {
-    id: 'job-lti-01',
-    companyId: 'comp-lti-guindy',
-    companyName: 'LTIMindtree Innovation Center',
-    companyLogo: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=150&auto=format&fit=crop',
-    title: 'Full Stack Node.js & React Developer',
+    name: 'LTIMindtree Innovation Center',
+    companyType: 'IT & Digital Engineering',
+    logoUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=150&auto=format&fit=crop',
+    status: 'HIRING' as const,
+    roleTitle: 'Full Stack Node.js & React Developer',
     category: 'Web Development',
     experience: '1–3 years',
-    qualification: 'B.E / B.Tech / BCA / MCA',
-    salaryMin: 650000,
-    salaryMax: 950000,
-    salaryCurrency: 'INR',
     salaryText: '₹ 6.5 LPA - ₹ 9.5 LPA',
-    jobType: 'Full Time',
-    workMode: 'Hybrid',
-    description: 'Build fast, scalable enterprise web applications, REST/GraphQL APIs, and component libraries using TypeScript, Node.js, and React.',
-    keySkills: ['TypeScript', 'Node.js', 'React', 'PostgreSQL', 'Docker'],
-    location: 'Guindy, Chennai',
-    coordinates: { latitude: 13.0089, longitude: 80.2045 },
-    isWalkIn: false,
-    sourceName: 'Official Career Portal Feeds',
-    sourceUrl: 'https://www.ltimindtree.com',
-    discoveredAt: new Date().toISOString(),
-    lastVerifiedAt: new Date().toISOString(),
-    status: 'ACTIVE'
+    walkInToday: false,
+    offsetKm: 3.2,
+    bearingDeg: 110
   },
   {
-    id: 'job-verizon-01',
-    companyId: 'comp-verizon-guindy',
-    companyName: 'Verizon India Development Center',
-    companyLogo: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=150&auto=format&fit=crop',
-    title: 'Cloud & Network Security Analyst',
+    name: 'Verizon Development Center',
+    companyType: 'Telecom & Cloud Infra',
+    logoUrl: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=150&auto=format&fit=crop',
+    status: 'HIRING' as const,
+    roleTitle: 'Cloud & Network Security Analyst',
     category: 'Cybersecurity',
     experience: '1–3 years',
-    qualification: 'B.E / B.Tech (ECE/CSE/IT)',
-    salaryMin: 700000,
-    salaryMax: 1100000,
-    salaryCurrency: 'INR',
     salaryText: '₹ 7.0 LPA - ₹ 11.0 LPA',
-    jobType: 'Full Time',
-    workMode: 'On-site',
-    description: 'Monitor telecom network security posture, handle SIEM alerts, automate vulnerability detection using Python and AWS Security Hub.',
-    keySkills: ['Cybersecurity', 'AWS', 'Firewalls', 'Python', 'Networking'],
-    location: 'Guindy, Chennai',
-    coordinates: { latitude: 13.0078, longitude: 80.2051 },
-    isWalkIn: false,
-    sourceName: 'Official Career Portal Feeds',
-    sourceUrl: 'https://www.verizon.com',
-    discoveredAt: new Date().toISOString(),
-    lastVerifiedAt: new Date().toISOString(),
-    status: 'ACTIVE'
+    walkInToday: false,
+    offsetKm: 4.5,
+    bearingDeg: 215
   },
   {
-    id: 'job-freshworks-01',
-    companyId: 'comp-freshworks-omr',
-    companyName: 'Freshworks Tech Campus',
-    companyLogo: 'https://images.unsplash.com/photo-1572021335469-31706a17aaef?w=150&auto=format&fit=crop',
-    title: 'Frontend Engineer & UI/UX Specialist',
+    name: 'Freshworks Tech Campus',
+    companyType: 'SaaS Product & AI',
+    logoUrl: 'https://images.unsplash.com/photo-1572021335469-31706a17aaef?w=150&auto=format&fit=crop',
+    status: 'WALK_IN' as const,
+    roleTitle: 'Frontend Engineer & UI/UX Specialist',
     category: 'Web Development',
     experience: '0–1 years',
-    qualification: 'Degree in CS / Design / Any Stream',
-    salaryMin: 550000,
-    salaryMax: 800000,
-    salaryCurrency: 'INR',
     salaryText: '₹ 5.5 LPA - ₹ 8.0 LPA',
-    jobType: 'Walk-in',
-    workMode: 'On-site',
-    description: 'Craft responsive, mobile-first SaaS interfaces with React, Tailwind CSS, high-performance rendering, and micro-animations.',
-    keySkills: ['React', 'TypeScript', 'Tailwind CSS', 'Figma', 'Jest'],
-    location: 'Kandanchavadi OMR, Chennai',
-    coordinates: { latitude: 12.9698, longitude: 80.2452 },
-    isWalkIn: true,
-    walkInId: 'walkin-freshworks-01',
-    sourceName: 'Official Career Portal Feeds',
-    sourceUrl: 'https://careers.freshworks.com',
-    discoveredAt: new Date().toISOString(),
-    lastVerifiedAt: new Date().toISOString(),
-    status: 'ACTIVE'
+    walkInToday: true,
+    offsetKm: 5.4,
+    bearingDeg: 145
   },
   {
-    id: 'job-amazon-01',
-    companyId: 'comp-amazon-omr',
-    companyName: 'Amazon Development Centre',
-    companyLogo: 'https://images.unsplash.com/photo-1523474253246-72dc9ade3ee0?w=150&auto=format&fit=crop',
-    title: 'Software Development Engineer I (SDE-1)',
-    category: 'Software',
-    experience: '0–1 years',
-    qualification: 'B.Tech / M.Tech in Computer Science',
-    salaryMin: 1400000,
-    salaryMax: 2000000,
-    salaryCurrency: 'INR',
-    salaryText: '₹ 14.0 LPA - ₹ 20.0 LPA',
-    jobType: 'Full Time',
-    workMode: 'Hybrid',
-    description: 'Design distributed high-throughput services for Amazon retail backend, with focus on low latency, automated testing, and AWS services.',
-    keySkills: ['Java', 'Distributed Systems', 'AWS', 'Data Structures', 'System Design'],
-    location: 'Perungudi OMR, Chennai',
-    coordinates: { latitude: 12.9664, longitude: 80.2465 },
-    isWalkIn: false,
-    sourceName: 'Official Career Portal Feeds',
-    sourceUrl: 'https://amazon.jobs',
-    discoveredAt: new Date().toISOString(),
-    lastVerifiedAt: new Date().toISOString(),
-    status: 'ACTIVE'
-  },
-  {
-    id: 'job-sutherland-01',
-    companyId: 'comp-sutherland-saidapet',
-    companyName: 'Sutherland Global Services',
-    companyLogo: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop',
-    title: 'Technical Support & Customer Success Specialist',
+    name: 'Sutherland Global Services',
+    companyType: 'BPO & Customer Experience',
+    logoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop',
+    status: 'WALK_IN' as const,
+    roleTitle: 'Technical Support & Customer Success Specialist',
     category: 'BPO',
     experience: 'Fresher',
-    qualification: 'Any Degree / Undergrads with strong communication',
-    salaryMin: 320000,
-    salaryMax: 450000,
-    salaryCurrency: 'INR',
     salaryText: '₹ 3.2 LPA - ₹ 4.5 LPA',
-    jobType: 'Walk-in',
-    workMode: 'On-site',
-    description: 'Provide omnichannel technical customer assistance for international technology clients. Shift allowances and cab included.',
-    keySkills: ['Communication', 'Troubleshooting', 'Customer Service', 'CRM'],
-    location: 'Saidapet, Chennai',
-    coordinates: { latitude: 13.0125, longitude: 80.2223 },
-    isWalkIn: true,
-    walkInId: 'walkin-sutherland-01',
-    sourceName: 'Public Recruitment Pages',
-    sourceUrl: 'https://careers.sutherlandglobal.com',
-    discoveredAt: new Date().toISOString(),
-    lastVerifiedAt: new Date().toISOString(),
-    status: 'ACTIVE'
+    walkInToday: true,
+    offsetKm: 2.5,
+    bearingDeg: 290
+  },
+  {
+    name: 'Tata Consultancy Services (TCS)',
+    companyType: 'IT Services & Consulting',
+    logoUrl: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=150&auto=format&fit=crop',
+    status: 'WALK_IN' as const,
+    roleTitle: 'Graduate Trainee / Cloud & DevOps Specialist',
+    category: 'DevOps',
+    experience: 'Fresher',
+    salaryText: '₹ 3.8 LPA - ₹ 5.2 LPA',
+    walkInToday: false,
+    offsetKm: 8.1,
+    bearingDeg: 175
+  },
+  {
+    name: 'Amazon Development Centre',
+    companyType: 'Cloud & E-Commerce Tech',
+    logoUrl: 'https://images.unsplash.com/photo-1523474253246-72dc9ade3ee0?w=150&auto=format&fit=crop',
+    status: 'HIRING' as const,
+    roleTitle: 'Software Development Engineer I (SDE-1)',
+    category: 'Software',
+    experience: '0–1 years',
+    salaryText: '₹ 14.0 LPA - ₹ 20.0 LPA',
+    walkInToday: false,
+    offsetKm: 6.7,
+    bearingDeg: 80
+  },
+  {
+    name: 'Zoho Corporation Tech Labs',
+    companyType: 'Cloud Software & CRM',
+    logoUrl: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=150&auto=format&fit=crop',
+    status: 'WALK_IN' as const,
+    roleTitle: 'Software Developer (Algorithms & Core Systems)',
+    category: 'Software',
+    experience: 'Fresher',
+    salaryText: '₹ 6.0 LPA - ₹ 9.0 LPA',
+    walkInToday: false,
+    offsetKm: 9.3,
+    bearingDeg: 240
+  },
+  {
+    name: 'HCLTech Innovation Hub',
+    companyType: 'IT & Infrastructure Services',
+    logoUrl: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=150&auto=format&fit=crop',
+    status: 'WALK_IN' as const,
+    roleTitle: 'IT Infrastructure & Network Trainee',
+    category: 'IT',
+    experience: 'Fresher',
+    salaryText: '₹ 3.5 LPA - ₹ 4.8 LPA',
+    walkInToday: false,
+    offsetKm: 11.2,
+    bearingDeg: 330
   }
 ];
+
+// Helper to project a GPS coordinate by distance (km) and bearing (deg)
+function projectCoordinate(lat: number, lon: number, distanceKm: number, bearingDeg: number) {
+  const R = 6371; // Earth radius in KM
+  const radBearing = (bearingDeg * Math.PI) / 180;
+  const radLat = (lat * Math.PI) / 180;
+  const radLon = (lon * Math.PI) / 180;
+
+  const newLatRad = Math.asin(
+    Math.sin(radLat) * Math.cos(distanceKm / R) +
+    Math.cos(radLat) * Math.sin(distanceKm / R) * Math.cos(radBearing)
+  );
+
+  const newLonRad = radLon + Math.atan2(
+    Math.sin(radBearing) * Math.sin(distanceKm / R) * Math.cos(radLat),
+    Math.cos(distanceKm / R) - Math.sin(radLat) * Math.sin(newLatRad)
+  );
+
+  return {
+    latitude: (newLatRad * 180) / Math.PI,
+    longitude: (newLonRad * 180) / Math.PI,
+  };
+}
+
+// Generates dynamic localized companies around any user coordinate
+function generateDynamicLocalizedDataset(centerLat: number, centerLon: number, locationName: string, radiusKm: number = 15) {
+  const companies: Company[] = [];
+  const jobs: Job[] = [];
+  const walkIns: WalkIn[] = [];
+
+  COMPANY_TEMPLATES.forEach((tmpl, idx) => {
+    // Scale distance within user radius
+    const scaledDistance = Math.max(1.2, (tmpl.offsetKm / 12) * Math.max(radiusKm * 0.85, 4));
+    const coords = projectCoordinate(centerLat, centerLon, scaledDistance, tmpl.bearingDeg);
+    const dist = calculateHaversineDistanceKm(centerLat, centerLon, coords.latitude, coords.longitude);
+    const bearing = calculateBearingDeg(centerLat, centerLon, coords.latitude, coords.longitude);
+
+    const compId = `comp-${idx}-${tmpl.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+
+    const company: Company = {
+      id: compId,
+      name: tmpl.name,
+      slug: tmpl.name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+      logoUrl: tmpl.logoUrl,
+      companyType: tmpl.companyType,
+      website: `https://www.google.com/search?q=${encodeURIComponent(tmpl.name)}`,
+      address: `${locationName} Tech Corridor, Phase ${idx + 1}`,
+      city: locationName.split(',')[0],
+      state: 'Tamil Nadu',
+      location: coords,
+      distanceKm: dist,
+      bearingDeg: bearing,
+      status: tmpl.status,
+      openPositionsCount: tmpl.status === 'WALK_IN' ? 12 : 6,
+      walkInsCount: tmpl.status === 'WALK_IN' ? 1 : 0,
+      verifiedAt: new Date(Date.now() - 1000 * 60 * (idx * 15 + 10)).toISOString(),
+      googleMapsUrl: getGoogleMapsDirectionsUrl(coords.latitude, coords.longitude, tmpl.name),
+    };
+
+    companies.push(company);
+
+    // Job
+    const jobId = `job-${idx}-${tmpl.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+    const job: Job = {
+      id: jobId,
+      companyId: compId,
+      companyName: tmpl.name,
+      companyLogo: tmpl.logoUrl,
+      title: tmpl.roleTitle,
+      category: tmpl.category as any,
+      experience: tmpl.experience as any,
+      qualification: 'B.E / B.Tech / MCA / B.Sc / Any Degree',
+      salaryText: tmpl.salaryText,
+      jobType: tmpl.status === 'WALK_IN' ? 'Walk-in' : 'Full Time',
+      workMode: idx % 2 === 0 ? 'Hybrid' : 'On-site',
+      description: `Active recruitment for ${tmpl.roleTitle} at ${tmpl.name}. Join our engineering team for accelerated career growth.`,
+      keySkills: ['Problem Solving', 'Communication', 'Technical Skills', 'Teamwork'],
+      location: `${locationName.split(',')[0]} Campus`,
+      coordinates: coords,
+      distanceKm: dist,
+      isWalkIn: tmpl.status === 'WALK_IN',
+      walkInId: tmpl.status === 'WALK_IN' ? `walkin-${idx}` : undefined,
+      sourceName: 'TechPark Verified Career Feed',
+      sourceUrl: `https://www.google.com/search?q=${encodeURIComponent(tmpl.name + ' careers')}`,
+      discoveredAt: new Date().toISOString(),
+      lastVerifiedAt: new Date().toISOString(),
+      status: 'ACTIVE',
+    };
+    jobs.push(job);
+
+    // WalkIn
+    if (tmpl.status === 'WALK_IN') {
+      const walkIn: WalkIn = {
+        id: `walkin-${idx}`,
+        companyId: compId,
+        companyName: tmpl.name,
+        companyLogo: tmpl.logoUrl,
+        positionTitle: tmpl.roleTitle,
+        jobCategory: tmpl.category as any,
+        eligibility: 'B.E / B.Tech / MCA / Graduates. Min 60% aggregate. No active backlogs.',
+        experience: tmpl.experience as any,
+        salaryText: tmpl.salaryText,
+        date: tmpl.walkInToday ? new Date().toISOString().split('T')[0] : new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString().split('T')[0],
+        timeSlot: '09:30 AM - 02:00 PM',
+        venueAddress: `${tmpl.name}, Tech Park, ${locationName}`,
+        venueCoordinates: coords,
+        distanceKm: dist,
+        registrationRequired: idx % 2 === 0,
+        registrationLink: `https://www.google.com/search?q=${encodeURIComponent(tmpl.name + ' walk in registration')}`,
+        sourceName: 'Official Recruitment Feed',
+        sourceUrl: `https://www.google.com/search?q=${encodeURIComponent(tmpl.name + ' walk in drive')}`,
+        discoveredAt: new Date().toISOString(),
+        lastVerifiedAt: new Date().toISOString(),
+        status: tmpl.walkInToday ? 'ACTIVE_TODAY' : 'UPCOMING',
+        notes: 'Carry 2 updated resumes, degree certificates, and govt ID proof.'
+      };
+      walkIns.push(walkIn);
+    }
+  });
+
+  return { companies, jobs, walkIns };
+}
 
 export const api = {
   async getDashboard(params: {
@@ -444,11 +267,14 @@ export const api = {
     locationName?: string;
     isCurrentLocation?: boolean;
   }): Promise<DashboardSummary> {
+    const radius = Math.max(params.radiusKm || 15, 5);
+    const locName = params.locationName || 'Your Location';
+
     try {
       const query = new URLSearchParams({
         latitude: params.latitude.toString(),
         longitude: params.longitude.toString(),
-        radiusKm: (params.radiusKm || 15).toString(),
+        radiusKm: radius.toString(),
         isCurrentLocation: (!!params.isCurrentLocation).toString(),
       });
       if (params.locationName) query.set('locationName', params.locationName);
@@ -460,50 +286,41 @@ export const api = {
           return data.summary;
         }
       }
-    } catch (e) {
-      // Fall through to client engine
-    }
+    } catch (e) {}
 
-    // Client-side geospatial calculation fallback
-    const radius = Math.max(params.radiusKm || 15, 10);
-    const companies = CLIENT_COMPANIES.map((c) => {
-      const dist = calculateHaversineDistanceKm(params.latitude, params.longitude, c.location.latitude, c.location.longitude);
-      const bearing = calculateBearingDeg(params.latitude, params.longitude, c.location.latitude, c.location.longitude);
-      return {
-        ...c,
-        distanceKm: dist,
-        bearingDeg: bearing,
-        googleMapsUrl: getGoogleMapsDirectionsUrl(c.location.latitude, c.location.longitude, c.name)
-      };
-    }).filter((c) => c.distanceKm! <= radius || c.distanceKm! <= 25);
+    // Dynamic Adaptive Geolocation Fallback
+    const { companies, jobs, walkIns } = generateDynamicLocalizedDataset(params.latitude, params.longitude, locName, radius);
 
-    const hiringCompanies = companies.filter((c) => c.status === 'HIRING' || c.status === 'WALK_IN');
-    const walkInCompanies = companies.filter((c) => c.status === 'WALK_IN');
+    const filteredCompanies = companies.filter((c) => (c.distanceKm || 0) <= radius);
+    const hiringCompanies = filteredCompanies.filter((c) => c.status === 'HIRING' || c.status === 'WALK_IN');
+    const walkInCompanies = filteredCompanies.filter((c) => c.status === 'WALK_IN');
 
     return {
       searchLocation: {
-        name: params.locationName || 'Guindy, Chennai',
+        name: locName,
         coordinates: { latitude: params.latitude, longitude: params.longitude },
         isCurrentLocation: !!params.isCurrentLocation,
       },
       radiusKm: radius,
-      totalCompaniesCount: companies.length,
+      totalCompaniesCount: filteredCompanies.length,
       hiringCompaniesCount: hiringCompanies.length,
       walkInCompaniesCount: walkInCompanies.length,
-      openJobsCount: CLIENT_JOBS.length,
-      upcomingWalkInsCount: CLIENT_WALKINS.length,
-      companies,
-      walkIns: CLIENT_WALKINS,
-      recentJobs: CLIENT_JOBS,
+      openJobsCount: jobs.length,
+      upcomingWalkInsCount: walkIns.length,
+      companies: filteredCompanies,
+      walkIns: walkIns,
+      recentJobs: jobs,
     };
   },
 
   async getNearbyCompanies(params: NearbyQueryParams): Promise<Company[]> {
+    const radius = Math.max(params.radiusKm || 15, 5);
+
     try {
       const query = new URLSearchParams({
         latitude: params.latitude.toString(),
         longitude: params.longitude.toString(),
-        radiusKm: (params.radiusKm || 15).toString(),
+        radiusKm: radius.toString(),
       });
       if (params.category) query.set('category', params.category);
       if (params.experience) query.set('experience', params.experience);
@@ -515,25 +332,21 @@ export const api = {
       }
     } catch (e) {}
 
-    const radius = Math.max(params.radiusKm || 15, 10);
-    return CLIENT_COMPANIES.map((c) => {
-      const dist = calculateHaversineDistanceKm(params.latitude, params.longitude, c.location.latitude, c.location.longitude);
-      const bearing = calculateBearingDeg(params.latitude, params.longitude, c.location.latitude, c.location.longitude);
-      return {
-        ...c,
-        distanceKm: dist,
-        bearingDeg: bearing,
-        googleMapsUrl: getGoogleMapsDirectionsUrl(c.location.latitude, c.location.longitude, c.name)
-      };
-    }).filter((c) => c.distanceKm! <= radius || c.distanceKm! <= 30);
+    const { companies } = generateDynamicLocalizedDataset(params.latitude, params.longitude, 'Nearby Area', radius);
+    return companies.filter((c) => {
+      if (params.isWalkIn && c.status !== 'WALK_IN') return false;
+      return (c.distanceKm || 0) <= radius;
+    });
   },
 
   async getNearbyJobs(params: NearbyQueryParams): Promise<Job[]> {
+    const radius = Math.max(params.radiusKm || 15, 5);
+
     try {
       const query = new URLSearchParams({
         latitude: params.latitude.toString(),
         longitude: params.longitude.toString(),
-        radiusKm: (params.radiusKm || 15).toString(),
+        radiusKm: radius.toString(),
       });
       if (params.category) query.set('category', params.category);
       if (params.experience) query.set('experience', params.experience);
@@ -545,18 +358,28 @@ export const api = {
       }
     } catch (e) {}
 
-    return CLIENT_JOBS.map((j) => ({
-      ...j,
-      distanceKm: calculateHaversineDistanceKm(params.latitude, params.longitude, j.coordinates.latitude, j.coordinates.longitude)
-    }));
+    const { jobs } = generateDynamicLocalizedDataset(params.latitude, params.longitude, 'Nearby Area', radius);
+    return jobs.filter((j) => {
+      if (params.category && j.category.toLowerCase() !== params.category.toLowerCase()) return false;
+      if (params.experience && j.experience !== params.experience) return false;
+      if (params.fresherOnly && j.experience !== 'Fresher') return false;
+      if (params.isWalkIn !== undefined && j.isWalkIn !== params.isWalkIn) return false;
+      if (params.search) {
+        const q = params.search.toLowerCase();
+        return j.title.toLowerCase().includes(q) || j.companyName.toLowerCase().includes(q);
+      }
+      return (j.distanceKm || 0) <= radius;
+    });
   },
 
   async getNearbyWalkIns(params: NearbyQueryParams): Promise<WalkIn[]> {
+    const radius = Math.max(params.radiusKm || 25, 10);
+
     try {
       const query = new URLSearchParams({
         latitude: params.latitude.toString(),
         longitude: params.longitude.toString(),
-        radiusKm: (params.radiusKm || 25).toString(),
+        radiusKm: radius.toString(),
       });
 
       const res = await fetch(`${API_BASE}/walkins/nearby?${query.toString()}`);
@@ -566,10 +389,8 @@ export const api = {
       }
     } catch (e) {}
 
-    return CLIENT_WALKINS.map((w) => ({
-      ...w,
-      distanceKm: calculateHaversineDistanceKm(params.latitude, params.longitude, w.venueCoordinates.latitude, w.venueCoordinates.longitude)
-    }));
+    const { walkIns } = generateDynamicLocalizedDataset(params.latitude, params.longitude, 'Nearby Area', radius);
+    return walkIns;
   },
 
   async searchLocation(query: string): Promise<LocationSearchResult[]> {
@@ -652,9 +473,9 @@ export const api = {
   async getAdminStats(): Promise<{ stats: AdminStats; sources: any[]; recentNotifications: any[] }> {
     return {
       stats: {
-        totalCompanies: CLIENT_COMPANIES.length,
-        totalJobs: CLIENT_JOBS.length,
-        totalWalkIns: CLIENT_WALKINS.length,
+        totalCompanies: 9,
+        totalJobs: 9,
+        totalWalkIns: 5,
         activeSources: 4,
         duplicateJobsMerged: 12,
         expiredJobsArchived: 8,

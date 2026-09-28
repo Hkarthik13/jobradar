@@ -45,12 +45,12 @@ export const CompanyBottomSheet: React.FC<CompanyBottomSheetProps> = ({
       api.getNearbyJobs({
         latitude: company.location.latitude,
         longitude: company.location.longitude,
-        radiusKm: 1,
+        radiusKm: 15,
       }),
       api.getNearbyWalkIns({
         latitude: company.location.latitude,
         longitude: company.location.longitude,
-        radiusKm: 1,
+        radiusKm: 25,
       }),
     ])
       .then(([allJobs, allWalkIns]) => {
