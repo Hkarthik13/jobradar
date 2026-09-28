@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm --workspace=shared run build && npm --workspace=client run build",
+  "buildCommand": "cd client && npm run build",
   "outputDirectory": "client/dist",
   "framework": "vite",
   "rewrites": [
