@@ -12,7 +12,7 @@
     "dev": "concurrently -n \"SERVER,CLIENT\" -c \"bgBlue.bold,bgGreen.bold\" \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "npm --workspace=server run dev",
     "dev:client": "npm --workspace=client run dev",
-    "build": "cd client && npm run build",
+    "build": "npm --prefix client run build",
     "start": "npm --workspace=server run start",
     "test": "npm --workspace=server run test"
   },
