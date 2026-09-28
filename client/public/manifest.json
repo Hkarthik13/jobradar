@@ -1,0 +1,19 @@
+{
+  "name": "JOB RADAR — Find who's hiring around you",
+  "short_name": "JobRadar",
+  "description": "Geospatial job discovery & walk-in alert mobile Progressive Web App",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#090d16",
+  "theme_color": "#090d16",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/radar-icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "jobs", "productivity", "navigation"]
+}

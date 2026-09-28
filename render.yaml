@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: jobradar-api
+    env: node
+    plan: free
+    buildCommand: npm install && npm --workspace=shared run build && npm --workspace=server run build
+    startCommand: npm --workspace=server run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_DEFAULT_CHAT_ID
+        sync: false
+      - key: SCANNER_CRON
+        value: "0 */6 * * *"
