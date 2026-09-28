@@ -1,24 +1,15 @@
 {
-  "version": 2,
-  "builds": [
+  "buildCommand": "npm --workspace=shared run build && npm --workspace=client run build",
+  "outputDirectory": "client/dist",
+  "framework": "vite",
+  "rewrites": [
     {
-      "src": "client/package.json",
-      "use": "@vercel/static-build",
-      "config": { "distDir": "dist" }
+      "source": "/api/(.*)",
+      "destination": "/server/src/index.ts"
     },
     {
-      "src": "server/src/index.ts",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "server/src/index.ts"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "client/$1"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
