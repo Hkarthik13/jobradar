@@ -53,7 +53,7 @@ export const App: React.FC = () => {
   const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
 
   // Filter State
-  const [radiusKm, setRadiusKm] = useState(10);
+  const [radiusKm, setRadiusKm] = useState(15);
   const [filters, setFilters] = useState<{
     category?: string;
     experience?: string;
@@ -141,10 +141,18 @@ export const App: React.FC = () => {
     fetchData();
   }, [coordinates, radiusKm, filters]);
 
-  // Handle GPS Location Request with IP Fallback
+  // Handle GPS Location Request with Real Place Name Reverse Geocoding
   const handleRequestGps = async () => {
     setGpsLoading(true);
     setGpsError(undefined);
+
+    const applyLocation = async (lat: number, lon: number) => {
+      setCoordinates({ latitude: lat, longitude: lon });
+      setIsUsingGps(true);
+      const place = await api.reverseGeocode(lat, lon);
+      setLocationName(place || 'Current Location');
+      setGpsLoading(false);
+    };
 
     const tryIpGeolocation = async () => {
       try {
@@ -152,17 +160,11 @@ export const App: React.FC = () => {
         if (res.ok) {
           const data = await res.json();
           if (data.latitude && data.longitude) {
-            setCoordinates({ latitude: data.latitude, longitude: data.longitude });
-            setIsUsingGps(true);
-            const cityName = data.city ? `${data.city}, ${data.region || 'India'}` : 'Current IP Location';
-            setLocationName(`📍 ${cityName} (Detected)`);
-            setGpsLoading(false);
+            await applyLocation(data.latitude, data.longitude);
             return true;
           }
         }
-      } catch (e) {
-        // Fallback
-      }
+      } catch (e) {}
       return false;
     };
 
@@ -176,15 +178,11 @@ export const App: React.FC = () => {
     }
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude, accuracy } = position.coords;
-        setCoordinates({ latitude, longitude });
-        setIsUsingGps(true);
-        setLocationName('Live GPS Location (You are here)');
-        setGpsLoading(false);
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        await applyLocation(latitude, longitude);
       },
       async (error) => {
-        // Try IP Geolocation fallback when browser GPS is blocked/unavailable
         const ipOk = await tryIpGeolocation();
         if (!ipOk) {
           setGpsLoading(false);
@@ -198,7 +196,7 @@ export const App: React.FC = () => {
           setGpsError(msg);
         }
       },
-      { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 }
+      { enableHighAccuracy: true, timeout: 6000, maximumAge: 60000 }
     );
   };
 
