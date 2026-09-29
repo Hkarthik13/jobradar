@@ -21,13 +21,25 @@ interface NotificationModalProps {
   onClose: () => void;
 }
 
-const STORAGE_KEY = 'jobradar_notification_pref_v2';
+const STORAGE_KEY = 'jobradar_notification_pref_v3';
+
+const DISTRICT_PRESETS = [
+  'All Districts (Tamil Nadu & India)',
+  'Chennai',
+  'Coimbatore',
+  'Madurai',
+  'Trichy',
+  'Salem',
+  'Tirunelveli',
+  'Villupuram',
+  'Bengaluru',
+];
 
 export const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, onClose }) => {
   // Load initial preferences synchronously from localStorage so it never starts empty
   const [pref, setPref] = useState<{
     enabled: boolean;
-    allLocations: boolean;
+    targetDistrict: string;
     emailEnabled: boolean;
     emailAddress: string;
     telegramEnabled: boolean;
@@ -37,12 +49,12 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, on
     browserPushEnabled: boolean;
   }>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('jobradar_notification_pref');
+      const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('jobradar_notification_pref_v2') || localStorage.getItem('jobradar_notification_pref');
       if (saved) {
         const parsed = JSON.parse(saved);
         return {
           enabled: parsed.enabled !== false,
-          allLocations: parsed.allLocations !== false, // Default to true (All walk-ins everywhere)
+          targetDistrict: parsed.targetDistrict || 'All Districts (Tamil Nadu & India)',
           emailEnabled: parsed.emailEnabled !== false,
           emailAddress: parsed.emailAddress || '',
           telegramEnabled: parsed.telegramEnabled !== false,
@@ -56,7 +68,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, on
 
     return {
       enabled: true,
-      allLocations: true, // Default: Send all walk-ins regardless of location
+      targetDistrict: 'All Districts (Tamil Nadu & India)',
       emailEnabled: true,
       emailAddress: '',
       telegramEnabled: true,
@@ -70,11 +82,13 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, on
   const [testingTelegram, setTestingTelegram] = useState(false);
   const [botStatus, setBotStatus] = useState<string | null>(null);
   const [testStatus, setTestStatus] = useState<string | null>(null);
+  const [customDistrict, setCustomDistrict] = useState('');
 
   // Auto-save to localStorage on every state change
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(pref));
+      localStorage.setItem('jobradar_notification_pref_v2', JSON.stringify(pref));
       localStorage.setItem('jobradar_notification_pref', JSON.stringify(pref));
     } catch (e) {}
   }, [pref]);
@@ -128,18 +142,28 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, on
     setTestingTelegram(true);
     setTestStatus('📡 Dispatching live Telegram notification to your phone...');
 
+    const district = pref.targetDistrict || 'Tamil Nadu';
+    const isAll = district.includes('All Districts');
+
+    const companyName = isAll ? 'Cognizant Technology Solutions' : `${district} Tech Park Development Center`;
+    const venueName = isAll ? 'Olympia Tech Park, Guindy, Chennai' : `Main Campus, ${district}, Tamil Nadu`;
+    const mapsLink = isAll 
+      ? 'https://www.google.com/maps/dir/?api=1&destination=13.0093,80.2037'
+      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(district + ' Tech Park')}`;
+
     const message = 
 `🚨 *JOB RADAR - LIVE WALK-IN ALERT* 🚨
+📍 *Target District:* ${district}
 
-🏢 *Company:* Cognizant Technology Solutions
-💼 *Position:* Associate Software Engineer (Java / React / Python)
-📍 *Distance:* 2.4 KM away
-📅 *Date:* Tomorrow (09:00 AM - 01:30 PM)
-🏛️ *Venue:* Olympia Tech Park, Guindy, Chennai
-🎓 *Eligibility:* B.E / B.Tech / MCA / Graduates (Min 60%)
-💰 *Salary:* ₹ 4.5 LPA - ₹ 6.0 LPA
+🏢 *Company:* ${companyName}
+💼 *Position:* Associate Software Engineer / Analyst
+📅 *Date:* Tomorrow (09:00 AM - 02:00 PM)
+🏛️ *Venue:* ${venueName}
+🎓 *Eligibility:* B.E / B.Tech / MCA / B.Sc / Any Degree
+💰 *Salary:* ₹ 4.5 LPA - ₹ 7.2 LPA
+⚡ *Drive Type:* Direct Walk-in Interview
 
-🔗 [Open Google Maps Directions](https://www.google.com/maps/dir/?api=1&destination=13.0093,80.2037)`;
+🔗 [Open Google Maps Directions](${mapsLink})`;
 
     try {
       const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -154,7 +178,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, on
 
       const data = await res.json();
       if (data.ok) {
-        setTestStatus('🎉 SUCCESS! Alert received on your Telegram app. Check your phone now!');
+        setTestStatus(`🎉 SUCCESS! Alert for [${district}] received on your Telegram app. Check your phone now!`);
       } else {
         if (data.error_code === 403 || (data.description && data.description.includes('bot was blocked'))) {
           setTestStatus('⚠️ Error: You must open your bot in Telegram and press START button first!');
@@ -251,59 +275,72 @@ https://www.google.com/maps/dir/?api=1&destination=13.0093,80.2037`
               Receive walk-in interview alerts on your phone lock screen with sound, company venue address, and Google Maps links.
             </p>
 
-            {/* Scope Selection: All Walk-ins vs Nearby Only */}
-            <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-700/80 space-y-2">
-              <div className="text-[11px] font-bold text-cyan-300 flex items-center space-x-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Walk-in Alert Coverage:</span>
+            {/* Scope Selection: Target District / City */}
+            <div className="p-3 rounded-xl bg-slate-950 border border-slate-700/80 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="text-[11px] font-bold text-cyan-300 flex items-center space-x-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Choose Your Target District for Alerts:</span>
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPref({ ...pref, allLocations: true })}
-                  className={`p-2 rounded-lg border text-left transition-all ${
-                    pref.allLocations
-                      ? 'bg-cyan-950/60 border-cyan-400 text-white font-bold shadow-md shadow-cyan-950'
-                      : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <div className="text-xs flex items-center justify-between">
-                    <span>🌍 All Walk-ins</span>
-                    {pref.allLocations && <Check className="w-3 h-3 text-cyan-400" />}
-                  </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5 font-normal">
-                    Any city / No location limit
-                  </div>
-                </button>
 
-                <button
-                  type="button"
-                  onClick={() => setPref({ ...pref, allLocations: false })}
-                  className={`p-2 rounded-lg border text-left transition-all ${
-                    !pref.allLocations
-                      ? 'bg-cyan-950/60 border-cyan-400 text-white font-bold shadow-md shadow-cyan-950'
-                      : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <div className="text-xs flex items-center justify-between">
-                    <span>📍 Nearby Only</span>
-                    {!pref.allLocations && <Check className="w-3 h-3 text-cyan-400" />}
-                  </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5 font-normal">
-                    Within {pref.maxDistanceKm} KM of GPS
-                  </div>
-                </button>
+              {/* District Preset Chips */}
+              <div className="flex flex-wrap gap-1.5">
+                {DISTRICT_PRESETS.map((dist) => {
+                  const isSelected = pref.targetDistrict === dist;
+                  return (
+                    <button
+                      key={dist}
+                      type="button"
+                      onClick={() => {
+                        setPref({ ...pref, targetDistrict: dist });
+                        setCustomDistrict('');
+                      }}
+                      className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-medium transition-all ${
+                        isSelected
+                          ? 'bg-cyan-500/25 border-cyan-400 text-white font-bold shadow-sm shadow-cyan-950'
+                          : 'bg-slate-900 border-slate-700/80 text-slate-300 hover:border-slate-500'
+                      }`}
+                    >
+                      {dist === 'All Districts (Tamil Nadu & India)' ? '🌍 All Districts' : dist}
+                      {isSelected && <span className="ml-1 text-cyan-400">✓</span>}
+                    </button>
+                  );
+                })}
               </div>
-              {pref.allLocations ? (
-                <div className="text-[10px] text-emerald-400 flex items-center space-x-1">
-                  <CheckCircle2 className="w-3 h-3 flex-shrink-0" />
-                  <span>Alerts enabled for <strong>ALL</strong> walk-in drives across all companies & cities!</span>
+
+              {/* Custom District Input */}
+              <div className="pt-1">
+                <div className="text-[10px] text-slate-400 mb-1">Or enter any specific District / Town:</div>
+                <div className="flex space-x-1.5">
+                  <input
+                    type="text"
+                    value={customDistrict}
+                    onChange={(e) => setCustomDistrict(e.target.value)}
+                    placeholder="e.g. Erode, Tiruppur, Vellore, Thanjavur..."
+                    className="flex-1 px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-[11px] focus:outline-none focus:border-cyan-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (customDistrict.trim()) {
+                        setPref({ ...pref, targetDistrict: customDistrict.trim() });
+                      }
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[11px]"
+                  >
+                    Set
+                  </button>
                 </div>
-              ) : (
-                <div className="text-[10px] text-cyan-300">
-                  Alerts filtered to within <strong>{pref.maxDistanceKm} KM</strong> of your selected location.
-                </div>
-              )}
+              </div>
+
+              {/* Active District Status Banner */}
+              <div className="p-2 rounded-lg bg-cyan-950/40 border border-cyan-500/30 text-[11px] text-emerald-400 flex items-center space-x-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0 text-cyan-400" />
+                <span>
+                  Active Alert District: <strong className="text-white underline">{pref.targetDistrict}</strong>
+                </span>
+              </div>
             </div>
 
             {/* Step 1: Bot Token */}
