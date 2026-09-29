@@ -95,8 +95,10 @@ export class NotificationService {
       walkin.venueCoordinates.longitude
     );
 
-    // Check radius threshold
-    if (distance > pref.maxDistanceKm) return false;
+    // If not in allLocations mode, enforce distance threshold
+    if (!pref.allLocations && distance > pref.maxDistanceKm) {
+      return false;
+    }
 
     // Check category matches
     if (pref.categories.length > 0) {

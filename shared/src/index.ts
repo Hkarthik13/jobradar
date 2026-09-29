@@ -183,6 +183,7 @@ export interface NotificationPreference {
   id?: string;
   userId?: string;
   enabled: boolean;
+  allLocations?: boolean;
   emailEnabled: boolean;
   emailAddress?: string;
   telegramEnabled: boolean;

@@ -27,6 +27,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, on
   // Load initial preferences synchronously from localStorage so it never starts empty
   const [pref, setPref] = useState<{
     enabled: boolean;
+    allLocations: boolean;
     emailEnabled: boolean;
     emailAddress: string;
     telegramEnabled: boolean;
@@ -41,12 +42,13 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, on
         const parsed = JSON.parse(saved);
         return {
           enabled: parsed.enabled !== false,
+          allLocations: parsed.allLocations !== false, // Default to true (All walk-ins everywhere)
           emailEnabled: parsed.emailEnabled !== false,
           emailAddress: parsed.emailAddress || '',
           telegramEnabled: parsed.telegramEnabled !== false,
           telegramChatId: parsed.telegramChatId || '',
           telegramBotToken: parsed.telegramBotToken || '',
-          maxDistanceKm: parsed.maxDistanceKm || 15,
+          maxDistanceKm: parsed.maxDistanceKm || 50,
           browserPushEnabled: parsed.browserPushEnabled || false,
         };
       }
@@ -54,12 +56,13 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, on
 
     return {
       enabled: true,
+      allLocations: true, // Default: Send all walk-ins regardless of location
       emailEnabled: true,
       emailAddress: '',
       telegramEnabled: true,
       telegramChatId: '',
       telegramBotToken: '',
-      maxDistanceKm: 15,
+      maxDistanceKm: 50,
       browserPushEnabled: false,
     };
   });
@@ -247,6 +250,61 @@ https://www.google.com/maps/dir/?api=1&destination=13.0093,80.2037`
             <p className="text-[11px] text-slate-300 leading-relaxed">
               Receive walk-in interview alerts on your phone lock screen with sound, company venue address, and Google Maps links.
             </p>
+
+            {/* Scope Selection: All Walk-ins vs Nearby Only */}
+            <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-700/80 space-y-2">
+              <div className="text-[11px] font-bold text-cyan-300 flex items-center space-x-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Walk-in Alert Coverage:</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPref({ ...pref, allLocations: true })}
+                  className={`p-2 rounded-lg border text-left transition-all ${
+                    pref.allLocations
+                      ? 'bg-cyan-950/60 border-cyan-400 text-white font-bold shadow-md shadow-cyan-950'
+                      : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <div className="text-xs flex items-center justify-between">
+                    <span>🌍 All Walk-ins</span>
+                    {pref.allLocations && <Check className="w-3 h-3 text-cyan-400" />}
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5 font-normal">
+                    Any city / No location limit
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPref({ ...pref, allLocations: false })}
+                  className={`p-2 rounded-lg border text-left transition-all ${
+                    !pref.allLocations
+                      ? 'bg-cyan-950/60 border-cyan-400 text-white font-bold shadow-md shadow-cyan-950'
+                      : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <div className="text-xs flex items-center justify-between">
+                    <span>📍 Nearby Only</span>
+                    {!pref.allLocations && <Check className="w-3 h-3 text-cyan-400" />}
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5 font-normal">
+                    Within {pref.maxDistanceKm} KM of GPS
+                  </div>
+                </button>
+              </div>
+              {pref.allLocations ? (
+                <div className="text-[10px] text-emerald-400 flex items-center space-x-1">
+                  <CheckCircle2 className="w-3 h-3 flex-shrink-0" />
+                  <span>Alerts enabled for <strong>ALL</strong> walk-in drives across all companies & cities!</span>
+                </div>
+              ) : (
+                <div className="text-[10px] text-cyan-300">
+                  Alerts filtered to within <strong>{pref.maxDistanceKm} KM</strong> of your selected location.
+                </div>
+              )}
+            </div>
 
             {/* Step 1: Bot Token */}
             <div className="space-y-1">
