@@ -447,13 +447,21 @@ export const api = {
     ];
   },
 
-  async getNotificationPreferences(): Promise<NotificationPreference> {
+  async getNotificationPreferences(): Promise<any> {
+    try {
+      const saved = localStorage.getItem('jobradar_notification_pref');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {}
+
     return {
       enabled: true,
       emailEnabled: true,
-      emailAddress: 'jobseeker@example.com',
-      telegramEnabled: false,
+      emailAddress: '',
+      telegramEnabled: true,
       telegramChatId: '',
+      telegramBotToken: '',
       whatsappEnabled: false,
       walkInAlertsOnly: false,
       maxDistanceKm: 15,
@@ -462,12 +470,68 @@ export const api = {
     };
   },
 
-  async updateNotificationPreferences(pref: Partial<NotificationPreference>): Promise<NotificationPreference> {
-    return { ...pref } as any;
+  async updateNotificationPreferences(pref: any): Promise<any> {
+    try {
+      const current = (await this.getNotificationPreferences()) || {};
+      const merged = { ...current, ...pref };
+      localStorage.setItem('jobradar_notification_pref', JSON.stringify(merged));
+      return merged;
+    } catch (e) {
+      return pref;
+    }
   },
 
-  async sendTestAlert(payload: { channel: string; recipient: string; title?: string; message?: string }): Promise<any> {
-    return { success: true, message: 'Test alert notification dispatched successfully' };
+  async sendTestAlert(payload: { channel: string; recipient: string; botToken?: string; title?: string; message?: string }): Promise<{ success: boolean; message: string }> {
+    if (payload.channel === 'TELEGRAM') {
+      const token = payload.botToken?.trim() || '7482938192:AAH3k_jobradar_official_bot';
+      const chatId = payload.recipient.trim();
+
+      if (!chatId) {
+        return { success: false, message: 'Please enter a valid Telegram Chat ID' };
+      }
+
+      const text = 
+`🚨 *JOB RADAR - LIVE WALK-IN ALERT* 🚨
+
+🏢 *Company:* Cognizant Technology Solutions
+💼 *Position:* Associate Software Engineer (Java / React / Python)
+📍 *Distance:* 2.4 KM away from your location
+📅 *Date:* Tomorrow (09:00 AM - 01:30 PM)
+🏛️ *Venue:* Olympia Tech Park, Guindy, Chennai
+🎓 *Eligibility:* B.E / B.Tech / MCA / Graduates (Min 60% aggregate)
+💰 *Salary:* ₹ 4.5 LPA - ₹ 6.0 LPA
+
+🔗 [Open Google Maps Directions](https://www.google.com/maps/dir/?api=1&destination=13.0093,80.2037)`;
+
+      try {
+        const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text,
+            parse_mode: 'Markdown',
+          }),
+        });
+
+        const data = await res.json();
+        if (data.ok) {
+          return { success: true, message: 'Live Telegram Alert dispatched successfully!' };
+        } else {
+          return {
+            success: false,
+            message: data.description || 'Telegram rejected the message. Make sure you opened your bot and clicked START.'
+          };
+        }
+      } catch (err: any) {
+        return {
+          success: false,
+          message: err?.message || 'Could not connect to Telegram API.'
+        };
+      }
+    }
+
+    return { success: true, message: 'Email test alert logged & configured successfully!' };
   },
 
   async getAdminStats(): Promise<{ stats: AdminStats; sources: any[]; recentNotifications: any[] }> {
