@@ -1,5 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Mail, Send, Check, X, ShieldAlert, Sparkles, SendHorizontal, KeyRound, ExternalLink, HelpCircle } from 'lucide-react';
+import { 
+  Bell, 
+  Mail, 
+  Send, 
+  Check, 
+  X, 
+  Sparkles, 
+  SendHorizontal, 
+  KeyRound, 
+  ExternalLink, 
+  MessageSquare,
+  CheckCircle2,
+  AlertCircle,
+  Smartphone
+} from 'lucide-react';
 import { api } from '../api';
 
 interface NotificationModalProps {
@@ -7,7 +21,10 @@ interface NotificationModalProps {
   onClose: () => void;
 }
 
+const STORAGE_KEY = 'jobradar_notification_pref_v2';
+
 export const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, onClose }) => {
+  // Load initial preferences synchronously from localStorage so it never starts empty
   const [pref, setPref] = useState<{
     enabled: boolean;
     emailEnabled: boolean;
@@ -16,114 +33,194 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, on
     telegramChatId: string;
     telegramBotToken: string;
     maxDistanceKm: number;
-  }>({
-    enabled: true,
-    emailEnabled: true,
-    emailAddress: 'jobseeker@example.com',
-    telegramEnabled: true,
-    telegramChatId: '',
-    telegramBotToken: '',
-    maxDistanceKm: 15,
+    browserPushEnabled: boolean;
+  }>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('jobradar_notification_pref');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          enabled: parsed.enabled !== false,
+          emailEnabled: parsed.emailEnabled !== false,
+          emailAddress: parsed.emailAddress || '',
+          telegramEnabled: parsed.telegramEnabled !== false,
+          telegramChatId: parsed.telegramChatId || '',
+          telegramBotToken: parsed.telegramBotToken || '',
+          maxDistanceKm: parsed.maxDistanceKm || 15,
+          browserPushEnabled: parsed.browserPushEnabled || false,
+        };
+      }
+    } catch (e) {}
+
+    return {
+      enabled: true,
+      emailEnabled: true,
+      emailAddress: '',
+      telegramEnabled: true,
+      telegramChatId: '',
+      telegramBotToken: '',
+      maxDistanceKm: 15,
+      browserPushEnabled: false,
+    };
   });
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [testing, setTesting] = useState(false);
+  const [testingTelegram, setTestingTelegram] = useState(false);
+  const [botStatus, setBotStatus] = useState<string | null>(null);
   const [testStatus, setTestStatus] = useState<string | null>(null);
 
+  // Auto-save to localStorage on every state change
   useEffect(() => {
-    if (isOpen) {
-      api.getNotificationPreferences()
-        .then((data: any) => {
-          if (data) {
-            setPref({
-              enabled: data.enabled !== false,
-              emailEnabled: data.emailEnabled !== false,
-              emailAddress: data.emailAddress || '',
-              telegramEnabled: data.telegramEnabled !== false,
-              telegramChatId: data.telegramChatId || '',
-              telegramBotToken: data.telegramBotToken || '',
-              maxDistanceKm: data.maxDistanceKm || 15,
-            });
-          }
-        })
-        .catch((err) => console.error(err))
-        .finally(() => setLoading(false));
-    }
-  }, [isOpen]);
-
-  const handleSave = async () => {
-    setSaving(true);
     try {
-      await api.updateNotificationPreferences(pref as any);
-      setTestStatus('✅ Settings permanently saved on your phone!');
-      setTimeout(() => setTestStatus(null), 3500);
-    } catch (err) {
-      setTestStatus('❌ Failed to save settings');
-    } finally {
-      setSaving(false);
-    }
-  };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(pref));
+      localStorage.setItem('jobradar_notification_pref', JSON.stringify(pref));
+    } catch (e) {}
+  }, [pref]);
 
-  const handleDispatchTestTelegram = async () => {
-    if (!pref.telegramChatId.trim()) {
-      setTestStatus('⚠️ Please enter your Telegram Chat ID first.');
+  // Check Telegram Bot Token validity whenever token is entered
+  useEffect(() => {
+    const token = pref.telegramBotToken.trim();
+    if (!token) {
+      setBotStatus(null);
       return;
     }
 
-    setTesting(true);
+    let isMounted = true;
+    const checkBot = async () => {
+      try {
+        const res = await fetch(`https://api.telegram.org/bot${token}/getMe`);
+        const data = await res.json();
+        if (isMounted) {
+          if (data.ok) {
+            setBotStatus(`🟢 Connected to @${data.result.username} (${data.result.first_name})`);
+          } else {
+            setBotStatus(`🔴 Invalid Token: ${data.description || 'Check Bot Token'}`);
+          }
+        }
+      } catch (e) {
+        if (isMounted) setBotStatus('⚠️ Could not connect to Telegram');
+      }
+    };
+
+    const timer = setTimeout(checkBot, 600);
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [pref.telegramBotToken]);
+
+  const handleTestTelegram = async () => {
+    const token = pref.telegramBotToken.trim();
+    const chatId = pref.telegramChatId.trim();
+
+    if (!token) {
+      setTestStatus('⚠️ Please enter your Telegram Bot Token from @BotFather first.');
+      return;
+    }
+
+    if (!chatId) {
+      setTestStatus('⚠️ Please enter your Telegram Chat ID (from @userinfobot).');
+      return;
+    }
+
+    setTestingTelegram(true);
     setTestStatus('📡 Dispatching live Telegram notification to your phone...');
 
+    const message = 
+`🚨 *JOB RADAR - LIVE WALK-IN ALERT* 🚨
+
+🏢 *Company:* Cognizant Technology Solutions
+💼 *Position:* Associate Software Engineer (Java / React / Python)
+📍 *Distance:* 2.4 KM away
+📅 *Date:* Tomorrow (09:00 AM - 01:30 PM)
+🏛️ *Venue:* Olympia Tech Park, Guindy, Chennai
+🎓 *Eligibility:* B.E / B.Tech / MCA / Graduates (Min 60%)
+💰 *Salary:* ₹ 4.5 LPA - ₹ 6.0 LPA
+
+🔗 [Open Google Maps Directions](https://www.google.com/maps/dir/?api=1&destination=13.0093,80.2037)`;
+
     try {
-      const res = await api.sendTestAlert({
-        channel: 'TELEGRAM',
-        recipient: pref.telegramChatId,
-        botToken: pref.telegramBotToken,
-        title: '🚨 JOB RADAR: NEW NEARBY WALK-IN ALERT',
-        message: 'Cognizant Technology Solutions is conducting a walk-in interview tomorrow at Olympia Tech Park, Guindy (2.4 KM away). Direct spot offer letters.'
+      const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: message,
+          parse_mode: 'Markdown',
+        }),
       });
 
-      if (res.success) {
-        setTestStatus('🎉 SUCCESS! Check your Telegram app now for the live alert.');
-        // Also auto-save
-        await api.updateNotificationPreferences(pref as any);
+      const data = await res.json();
+      if (data.ok) {
+        setTestStatus('🎉 SUCCESS! Alert received on your Telegram app. Check your phone now!');
       } else {
-        setTestStatus(`⚠️ Telegram error: ${res.message || 'Make sure you clicked /start on your bot first.'}`);
+        if (data.error_code === 403 || (data.description && data.description.includes('bot was blocked'))) {
+          setTestStatus('⚠️ Error: You must open your bot in Telegram and press START button first!');
+        } else if (data.description && data.description.includes('chat not found')) {
+          setTestStatus('⚠️ Error: Chat ID not found. Send any message to your bot in Telegram first.');
+        } else {
+          setTestStatus(`⚠️ Telegram error: ${data.description}`);
+        }
       }
     } catch (err: any) {
-      setTestStatus('❌ Failed to send Telegram alert. Check your Bot Token and Chat ID.');
+      setTestStatus(`❌ Network error: ${err.message}`);
     } finally {
-      setTesting(false);
+      setTestingTelegram(false);
     }
   };
 
-  const handleDispatchTestEmail = async () => {
-    if (!pref.emailAddress.trim()) {
-      setTestStatus('⚠️ Please enter your Email address.');
+  const handleWhatsAppAlert = () => {
+    const text = encodeURIComponent(
+`🚨 *JOB RADAR - LIVE WALK-IN ALERT*
+
+🏢 *Company:* Cognizant Technology Solutions
+💼 *Position:* Associate Software Engineer (Java / React)
+📍 *Distance:* 2.4 KM from your location
+📅 *Date:* Tomorrow (09:00 AM - 01:30 PM)
+🏛️ *Venue:* Olympia Tech Park, Guindy, Chennai
+💰 *Salary:* ₹ 4.5 LPA - ₹ 6.0 LPA
+
+📍 Google Maps Directions:
+https://www.google.com/maps/dir/?api=1&destination=13.0093,80.2037`
+    );
+    window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+  };
+
+  const handleBrowserPush = async () => {
+    if (!('Notification' in window)) {
+      alert('This browser does not support desktop notifications.');
       return;
     }
 
-    setTestStatus('📧 Email alert logged & configured successfully!');
-    await api.updateNotificationPreferences(pref as any);
-    setTimeout(() => setTestStatus(null), 3500);
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      setPref({ ...pref, browserPushEnabled: true });
+      new Notification('🚨 JOB RADAR Walk-In Alert', {
+        body: 'New Walk-In interview detected nearby at Olympia Tech Park!',
+        icon: '/radar-icon.svg',
+      });
+      setTestStatus('✅ In-App Phone Push Notifications Enabled!');
+      setTimeout(() => setTestStatus(null), 3000);
+    } else {
+      setTestStatus('⚠️ Notification permission was denied in browser.');
+    }
   };
 
   if (!isOpen) return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col justify-end sm:justify-center items-center bg-black/80 backdrop-blur-sm p-0 sm:p-4"
+      className="fixed inset-0 z-50 flex flex-col justify-end sm:justify-center items-center bg-black/85 backdrop-blur-sm p-0 sm:p-4"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg bg-slate-900 border-t sm:border border-slate-700 rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-slide-up"
+        className="w-full max-w-lg bg-slate-900 border-t sm:border border-slate-700 rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
+        <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/80">
           <div className="flex items-center space-x-2">
             <Bell className="w-5 h-5 text-emerald-400" />
-            <h3 className="font-bold text-base text-white">Live Walk-in Alert Dispatcher</h3>
+            <h3 className="font-bold text-base text-white">Live Walk-in Alerts Setup</h3>
           </div>
           <button
             onClick={onClose}
@@ -135,171 +232,146 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, on
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
-          {loading ? (
-            <div className="py-8 text-center text-slate-400">Loading saved preferences...</div>
-          ) : (
-            <>
-              {/* Master Toggle */}
-              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-500/40 flex items-center justify-between">
-                <div>
-                  <div className="font-bold text-sm text-white">Automated Proactive Alerts</div>
-                  <div className="text-slate-400 text-xs">Receive direct phone notifications for newly discovered walk-ins</div>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={pref.enabled}
-                  onChange={(e) => setPref({ ...pref, enabled: e.target.checked })}
-                  className="w-5 h-5 accent-emerald-500 rounded cursor-pointer"
-                />
+          {/* Telegram Alerts Box */}
+          <div className="p-4 rounded-2xl bg-slate-900 border-2 border-cyan-500/50 space-y-3 shadow-xl shadow-cyan-950/40">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Send className="w-4 h-4 text-cyan-400" />
+                <span className="font-bold text-white text-sm">Telegram Bot Alerts (100% Free)</span>
               </div>
+              <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-bold">
+                RECOMMENDED
+              </span>
+            </div>
 
-              {/* Telegram Bot Channel (Best for Mobile) */}
-              <div className="p-4 rounded-2xl bg-slate-900 border-2 border-cyan-500/40 space-y-3 shadow-lg shadow-cyan-950/30">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Send className="w-4 h-4 text-cyan-400" />
-                    <span className="font-bold text-white text-sm">Telegram Phone Alerts (Recommended)</span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={pref.telegramEnabled}
-                    onChange={(e) => setPref({ ...pref, telegramEnabled: e.target.checked })}
-                    className="w-4 h-4 accent-cyan-500 rounded cursor-pointer"
-                  />
-                </div>
+            <p className="text-[11px] text-slate-300 leading-relaxed">
+              Receive walk-in interview alerts on your phone lock screen with sound, company venue address, and Google Maps links.
+            </p>
 
-                <p className="text-[11px] text-slate-300 leading-relaxed">
-                  Get instant walk-in notifications directly on your phone lock screen with company address, date, time & Google Maps directions.
-                </p>
-
-                {/* Chat ID Input */}
-                <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-400 flex items-center justify-between">
-                    <span>1. Your Telegram Chat ID <strong className="text-cyan-400">*</strong></span>
-                    <a
-                      href="https://t.me/userinfobot"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-cyan-400 hover:underline flex items-center space-x-1"
-                    >
-                      <span>Find via @userinfobot</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </label>
-                  <input
-                    type="text"
-                    value={pref.telegramChatId}
-                    onChange={(e) => setPref({ ...pref, telegramChatId: e.target.value })}
-                    placeholder="e.g. 543219876"
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono text-xs focus:outline-none focus:border-cyan-500"
-                  />
-                </div>
-
-                {/* Bot Token Input */}
-                <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-400 flex items-center justify-between">
-                    <span>2. Telegram Bot API Token (Optional / Custom)</span>
-                    <a
-                      href="https://t.me/BotFather"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-cyan-400 hover:underline flex items-center space-x-1"
-                    >
-                      <span>Get from @BotFather</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </label>
-                  <input
-                    type="text"
-                    value={pref.telegramBotToken}
-                    onChange={(e) => setPref({ ...pref, telegramBotToken: e.target.value })}
-                    placeholder="e.g. 782348123:AAFsdfj2k34... (Optional)"
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-slate-300 font-mono text-xs focus:outline-none focus:border-cyan-500"
-                  />
-                </div>
-
-                {/* Test Telegram Alert Button */}
-                <button
-                  onClick={handleDispatchTestTelegram}
-                  disabled={testing}
-                  className="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold flex items-center justify-center space-x-2 shadow-md shadow-cyan-600/30 transition-all touch-press"
+            {/* Step 1: Bot Token */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-[11px] font-semibold text-slate-300">
+                <span>1. Telegram Bot Token:</span>
+                <a
+                  href="https://t.me/BotFather"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-cyan-400 hover:underline flex items-center space-x-1"
                 >
-                  <SendHorizontal className={`w-3.5 h-3.5 ${testing ? 'animate-spin' : ''}`} />
-                  <span>{testing ? 'Sending Live Test Alert...' : '🚀 Test Live Telegram Alert on Phone'}</span>
-                </button>
+                  <span>Get via @BotFather</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
               </div>
-
-              {/* Email Alerts */}
-              <div className="p-3.5 rounded-2xl bg-slate-800/50 border border-slate-700/60 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Mail className="w-4 h-4 text-emerald-400" />
-                    <span className="font-bold text-white text-sm">Email Alerts</span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={pref.emailEnabled}
-                    onChange={(e) => setPref({ ...pref, emailEnabled: e.target.checked })}
-                    className="w-4 h-4 accent-emerald-500 rounded cursor-pointer"
-                  />
-                </div>
-                <input
-                  type="email"
-                  value={pref.emailAddress}
-                  onChange={(e) => setPref({ ...pref, emailAddress: e.target.value })}
-                  placeholder="your.email@example.com"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 text-xs focus:outline-none focus:border-emerald-500"
-                />
-                <button
-                  onClick={handleDispatchTestEmail}
-                  className="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center space-x-1 text-[11px]"
-                >
-                  <SendHorizontal className="w-3 h-3" />
-                  <span>Save & Test Email Notification</span>
-                </button>
-              </div>
-
-              {/* Distance Threshold */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="font-semibold text-slate-400 uppercase font-mono">Alert Distance Radius</span>
-                  <span className="text-emerald-400 font-bold font-mono text-sm">{pref.maxDistanceKm} KM</span>
-                </div>
-                <div className="grid grid-cols-4 gap-2">
-                  {[5, 10, 15, 25].map((dist) => (
-                    <button
-                      key={dist}
-                      onClick={() => setPref({ ...pref, maxDistanceKm: dist })}
-                      className={`py-2 text-center rounded-xl border font-bold transition-all ${
-                        pref.maxDistanceKm === dist
-                          ? 'bg-emerald-500 text-slate-950 border-emerald-400'
-                          : 'bg-slate-800 border-slate-700 text-slate-300'
-                      }`}
-                    >
-                      {dist} KM
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Feedback status banner */}
-              {testStatus && (
-                <div className="p-3 rounded-xl bg-slate-950 border border-cyan-500/40 text-cyan-300 text-xs text-center font-mono leading-relaxed animate-pulse">
-                  {testStatus}
+              <input
+                type="text"
+                value={pref.telegramBotToken}
+                onChange={(e) => setPref({ ...pref, telegramBotToken: e.target.value })}
+                placeholder="e.g. 782348123:AAFsdfj2k34..."
+                className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono text-xs focus:outline-none focus:border-cyan-500"
+              />
+              {botStatus && (
+                <div className="text-[11px] font-mono text-slate-300 mt-1 pl-1">
+                  {botStatus}
                 </div>
               )}
-            </>
+            </div>
+
+            {/* Step 2: Chat ID */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-[11px] font-semibold text-slate-300">
+                <span>2. Your Telegram Chat ID:</span>
+                <a
+                  href="https://t.me/userinfobot"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-cyan-400 hover:underline flex items-center space-x-1"
+                >
+                  <span>Get via @userinfobot</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+              <input
+                type="text"
+                value={pref.telegramChatId}
+                onChange={(e) => setPref({ ...pref, telegramChatId: e.target.value })}
+                placeholder="e.g. 543219876"
+                className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono text-xs focus:outline-none focus:border-cyan-500"
+              />
+            </div>
+
+            {/* Important Note */}
+            <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-400">
+              💡 <strong>Important:</strong> Open your created bot in Telegram and click <strong>"START"</strong> once, so the bot has permission to message you.
+            </div>
+
+            {/* Test Alert Button */}
+            <button
+              onClick={handleTestTelegram}
+              disabled={testingTelegram}
+              className="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold flex items-center justify-center space-x-2 shadow-lg shadow-cyan-600/30 transition-all touch-press"
+            >
+              <SendHorizontal className={`w-3.5 h-3.5 ${testingTelegram ? 'animate-spin' : ''}`} />
+              <span>{testingTelegram ? 'Sending Test Alert...' : '🚀 Test Live Telegram Alert on Phone'}</span>
+            </button>
+          </div>
+
+          {/* WhatsApp Direct Share Option */}
+          <div className="p-3.5 rounded-2xl bg-slate-800/60 border border-emerald-500/30 flex items-center justify-between">
+            <div className="flex items-center space-x-2.5">
+              <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400">
+                <MessageSquare className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="font-bold text-white text-xs">WhatsApp Walk-in Alert</div>
+                <div className="text-slate-400 text-[11px]">Send walk-in drive details directly to your WhatsApp</div>
+              </div>
+            </div>
+            <button
+              onClick={handleWhatsAppAlert}
+              className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center space-x-1 touch-press"
+            >
+              <span>Share</span>
+              <ExternalLink className="w-3 h-3" />
+            </button>
+          </div>
+
+          {/* Browser Phone Push Notification */}
+          <div className="p-3.5 rounded-2xl bg-slate-800/60 border border-slate-700 flex items-center justify-between">
+            <div className="flex items-center space-x-2.5">
+              <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400">
+                <Smartphone className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="font-bold text-white text-xs">Phone Push Notifications</div>
+                <div className="text-slate-400 text-[11px]">Allow browser popup alerts for nearby jobs</div>
+              </div>
+            </div>
+            <button
+              onClick={handleBrowserPush}
+              className="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs touch-press"
+            >
+              Enable
+            </button>
+          </div>
+
+          {/* Status Feedback Banner */}
+          {testStatus && (
+            <div className="p-3 rounded-xl bg-slate-950 border border-cyan-500/40 text-cyan-300 text-xs text-center font-mono leading-relaxed shadow-lg animate-pulse">
+              {testStatus}
+            </div>
           )}
         </div>
 
         {/* Footer */}
         <div className="p-4 border-t border-slate-800 bg-slate-950/80">
           <button
-            onClick={handleSave}
-            disabled={saving}
+            onClick={() => {
+              setTestStatus('✅ All settings are automatically saved!');
+              setTimeout(onClose, 800);
+            }}
             className="w-full py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/25 touch-press"
           >
-            {saving ? 'Saving...' : 'Save All Preferences Permanently'}
+            Done & Close
           </button>
         </div>
       </div>
